@@ -18,7 +18,7 @@ const ReportSchema = new Schema({
         type: String,
         required: true,
     },
-    imgUrl: {
+    urlImage: {
         type: String,
         required: true,
     },

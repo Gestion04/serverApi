@@ -8,18 +8,29 @@ import jwt from 'jsonwebtoken';
 import Receiver from '../models/Receiver';
 import Thistory from '../models/Thistory';
 import Withdraw from '../models/Withdraw';
+import Server from '../models/Server';
 // const Users = require('../models/users');
 // const bcrypt = require('bcrypt');
 // const jwt = require('jsonwebtoken');
-
-
+const free = 3;
+(async()=>{
+    const server = await Server.findOne();
+    if(!server){
+        const newServer = new Server({
+            Admin: 'admin',
+            AllBalance: 0,
+            Balance: 0
+        });
+        await newServer.save();
+    }
+})()
 export const register = async (req, res) => {
     try{
         const { email, password, fullName, number, codeReference, wallet } = req.body;
         const IdReference = Math.floor(Math.random() * (9999999 - 1000000 + 1)) + 100000;
         bcrypt.genSalt(10, (err, salt) => {
             bcrypt.hash(password, salt, async (err, hash) => {
-                const userSave = new Users({ email, password:hash, fullName, number:Number(number), codeReference:Number(codeReference), wallet, IdReference, balance: 0, pendientBalance: 0, withdrawBalance: 0, depositBalance: 0 });
+                const userSave = new Users({ email, password:hash, fullName, number:Number(number), codeReference:Number(codeReference), wallet, IdReference, balance: 0, pendientBalance: 0, withdrawBalance: 0, depositBalance: 0, investBalance: 0, gainBalance: 0 });
                 const userReferencia = await Users.findOne({ IdReference:userSave.codeReference});
                 if(userReferencia){
                     await new Reference({
@@ -74,7 +85,9 @@ export const login = (req, res) => {
                             IdReference: user.IdReference,
                             codeReference: user.codeReference,
                             balance: user.balance,
-                            pendientBalance: user.pendientBalance
+                            pendientBalance: user.pendientBalance,
+                            withdrawBalance: user.withdrawBalance,
+                            depositBalance: user.depositBalance
                         }
                         const token = jwt.sign({ user: userEdit }, process.env.JWT_SECRET, { expiresIn: '180d' });
 
@@ -94,7 +107,7 @@ export const login = (req, res) => {
 export const getUser = async (req, res) => {
     try{
         const user = await Users.find({});
-        res.json({ user, success: true });
+        res.json({ user:JSON.stringify(user), success: true, message: 'Users found' });
     }catch(err){
         res.json({ message: err });
     }
@@ -109,6 +122,7 @@ export const transfer = (req, res) => {
         const { number, amount, password } = req.body;
         Users.findOne({ number:Number(number)}, async (err, user) => {
             if(err) throw err;
+            if(user.balance < amount || amount <= 0) return res.json({message: "You don't have enough money", success: false});
             if(!user){
                 res.json({ message: 'User not found, choose another number', success: false });
             }else{
@@ -159,14 +173,14 @@ export const push = (req, res) => {
 
 export const getThistory = (req, res) => {
     try{
-        const { token } = req.query;
+        const { token } = req.headers;
         jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
             if(err) throw err;
-            const data = await Thistory.find({number:decoded.user.number})
-            const data2 = await Receiver.find({number:decoded.user.number})
-            const data3 = await Reference.find({referenceNumber:decoded.user.number})
-            const data4 = await Pushs.find({number:decoded.user.number})
-            const user = await Users.findOne({number:decoded.user.number})
+            const data = await Thistory.find({number:Number(decoded.user.number)})
+            const data2 = await Receiver.find({number:Number(decoded.user.number)})
+            const data3 = await Reference.find({referenceNumber:Number(decoded.user.number)})
+            const data4 = await Pushs.find({number:Number(decoded.user.number)})
+            const user = await Users.findOne({number:Number(decoded.user.number)})
             const token = jwt.sign({ user, thistory:JSON.stringify(data),receiver:JSON.stringify(data2), reference:JSON.stringify(data3), pushs: JSON.stringify(data4) }, process.env.JWT_SECRET, { expiresIn: '180d' });
             
             res.json({thistory:JSON.stringify(data),receiver:JSON.stringify(data2), user, token, reference:JSON.stringify(data3), pushs: JSON.stringify(data4), success:true})
@@ -184,7 +198,7 @@ export const sendReceiver = (req, res) => {
             const { number, amount } = req.body;
             const user = await Users.findOne({ number:Number(number)});
             if(!user) return res.json({message: "User not found", success: false});
-            if(number === decoded.user.number) return res.json({message: "You can't send to your own number", success: false});
+            if(number === Number(decoded.user.number)) return res.json({message: "You can't send to your own number", success: false});
             await new Receiver({
                 number: Number(number),
                 amount: Number(amount),
@@ -208,6 +222,7 @@ export const payReceiver = (req, res) => {
             const { amount, date, pendientNumber } = req.body;
             const user = await Users.findOne({ number:Number(decoded.user.number)});
             if(err) throw err;
+            if(user.balance < amount || amount <= 0) return res.json({message: "You don't have enough money", success: false});
             if(!user){
                 res.json({ message: 'User not found, choose another number', success: false });
             }else{
@@ -254,7 +269,7 @@ export const reportMsg = (req, res) => {
                 name: name,
                 title: title,
                 message: message,
-                imgUrl: imgUrl,
+                urlImage: imgUrl,
                 date: new Date()
             }).save()
             res.json({ message: 'Report sent', success: true });
@@ -298,22 +313,30 @@ export const withdrawDef = (req, res) => {
             if(err) throw err;
             const { amount } = req.body;
             const user = await Users.findOne({ number:Number(decoded.user.number)});
-            if(user.balance < amount) return res.json({message: "You don't have enough money", success: false});
+            if(!user) return res.json({message: "User not found", success: false});
+            if(user.balance < amount || amount <= 0) return res.json({message: "You don't have enough money", success: false});
             await Users.findOneAndUpdate({ number:Number(decoded.user.number)}, { $inc: { balance: -amount } })
             await new Thistory({
                 type: "Withdraw",
                 number: Number(decoded.user.number),
                 wallet: Number(decoded.user.wallet),
-                amount: -amount,
+                amount: -(amount*(100-free)/100),
                 date: new Date(),
                 status: true
             }).save()
             await new Pushs({
                 number: Number(decoded.user.number),
                 title: `Withdrawal Request`,
-                message: `you requested to withdraw ${-amount} USDT`,
+                message: `you requested to withdraw ${-(amount*(100-free)/100)} USDT`,
                 date: new Date()
             }).save()
+            await new Withdraw({
+                number: Number(decoded.user.number),
+                amount: -(amount*(100-free)/100),
+                wallet: decoded.user.wallet,
+                date: new Date(),
+                status: true
+            }).save()            
             res.json({ message: 'Withdraw sent', success: true });
         })
     }
@@ -342,7 +365,7 @@ export const getWithdraw = async (req, res) => {
     try{
         const withdraw = await Withdraw.find({});
         if(!withdraw) return res.json({message: "Withdraw not found", success: false});
-        res.json({ message: 'Withdraw found', success: true, withdraw });
+        res.json({ message: 'Withdraw found', success: true, withdraw:JSON.stringify(withdraw) });
     }catch(err){
         res.json({ message: err });
     }
@@ -356,7 +379,7 @@ export const payWithdraw = async (req, res) => {
             const { number, amount, date, wallet, pay } = req.body;
             await Withdraw.findOneAndRemove({ number:Number(number), amount:Number(amount), date, status:true, wallet})
             if(pay){
-                await Pushs({
+                await new Pushs({
                     number: Number(number),
                     title: `Successful Withdrawal`,
                     message: `Successful withdrawal of ${-amount} USDT`,
@@ -364,13 +387,22 @@ export const payWithdraw = async (req, res) => {
                 }).save()
                 res.json({ message: 'Withdraw paid', success: true });
             }else{
-                await Pushs({
+                await new Pushs({
                     number: Number(number),
                     title: `Failed Withdrawal`,
                     message: `Failed Withdrawal of ${-amount} USDT`,
                     date: new Date()
                 }).save()
-                await Users.findOneAndUpdate({ number:Number(number)}, { $inc: { balance: +amount } })
+                await new Thistory({
+                    type: "Failed Withdrawal",
+                    number: Number(number),
+                    wallet: wallet,
+                    amount: +Math.abs(amount),
+                    date: new Date(),
+                    status: true
+                }).save()
+                await Users.findOneAndUpdate({ number:Number(number)}, { $inc: { balance: +Math.abs(amount) } })
+                await Server.findOneAndUpdate({ Admin: 'admin'}, { $inc: { Balance: +(amount*free/100) } },{ $dec: { AllBalance: +(amount*(100-free)/100) } })
                 res.json({ message: 'Withdraw not paid', success: true });
             }
         })
@@ -383,7 +415,7 @@ export const payWithdraw = async (req, res) => {
 export const getDeposited = async (req, res) => {
     try{
         const deposited = await Deposit.find({});
-        res.json({ deposited, success: true });
+        res.json({ deposited:JSON.stringify(deposited), success: true });
     }
     catch(err){
         res.json({ message: err });
@@ -396,19 +428,29 @@ export const payDeposited = async (req, res) => {
         jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
             if(err) throw err;
             if(decoded.user.number != 0) return res.json({message: "You are not admin", success: false});
-            const { number, amount, date, wallet, pay } = req.body;
-            await Deposit.findOneAndRemove({ number:Number(number), amount:Number(amount), date, status:true, wallet})
+            const { number, amount, date, hash, pay, urlImage } = req.body;
+            await Deposit.findOneAndRemove({ number:Number(number), date, status:true, hash,urlImage:urlImage})
+            
             if(pay){
-                await Pushs({
+                let user = await Users.findOneAndUpdate({ number:Number(number)}, { $inc: { balance: +amount, depositBalance:+amount } })
+                await Server.findOneAndUpdate({ Admin: 'admin'}, { $inc: { AllBalance: +amount } })
+                await new Pushs({
                     number: Number(number),
                     title: `Successful Deposit`,
                     message: `Successful deposit of ${amount} USDT`,
                     date: new Date()
                 }).save()
-                await Users.findOneAndUpdate({ number:Number(number)}, { $inc: { balance: +amount, depositBalance:+amount } })
+                await new Thistory({
+                    type: "Deposit",
+                    number: Number(user.number),
+                    wallet: user.wallet,
+                    amount: +amount,
+                    date: new Date(),
+                    status: true
+                }).save()
                 res.json({ message: 'Deposit paid', success: true });
             }else{
-                await Pushs({
+                await new Pushs({
                     number: Number(number),
                     title: `Failed Deposit`,
                     message: `Failed deposit of ${amount} USDT`,
@@ -425,7 +467,7 @@ export const payDeposited = async (req, res) => {
 export const getReport = async (req, res) => {
     try{
         const report = await Report.find({});
-        res.json({ report, success: true });
+        res.json({ report:JSON.stringify(report), success: true });
     }
     catch(err){
         res.json({ message: err });
@@ -438,7 +480,7 @@ export const reportAccept = async (req, res) => {
             if(err) throw err;
             if(decoded.user.number != 0) return res.json({message: "You are not admin", success: false});
             const { number, name, title, date, message, bool } = req.body;
-            await Report.findOneAndRemove({ number:Number(number), name, amount:Number(amount), date, status:true, message})
+            await Report.findOneAndRemove({ number:Number(number), name, title, date, status:true, message})
             if(bool){
                 await Pushs({
                     number: Number(number),
@@ -455,6 +497,41 @@ export const reportAccept = async (req, res) => {
                     date: new Date()
                 }).save()
                 res.json({ message: 'Report sent fail', success: true });
+            }
+        })
+    }catch(err){
+        res.json({ message: err });
+    }
+}
+export const addMoney = async (req, res) => {
+    try{
+        const { token } = req.headers;
+        jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
+            if(err) throw err;
+            if(decoded.user.number != 0) return res.json({message: "You are not admin", success: false});
+            const { number, amount } = req.body;
+            let user = await Users.findOne({ number:Number(number)})
+            if(!user) return res.json({ message: 'User not found', success: false });
+            if(user){
+                await Users.findOneAndUpdate({ number:Number(number)}, { $inc: { balance: +amount } })
+                await Server.findOneAndUpdate({ Admin: 'admin'}, { $inc: { AllBalance: +amount } })
+                await new Pushs({
+                    number: Number(number),
+                    title: `Successful Add Money`,
+                    message: `Successful add money of ${amount} USDT`,
+                    date: new Date()
+                }).save()
+                await new Thistory({
+                    type: "Deposit",
+                    number: Number(user.number),
+                    wallet: user.wallet,
+                    amount: +amount,
+                    date: new Date(),
+                    status: true
+                }).save()
+                res.json({ message: 'Add money success', success: true });
+            }else{
+                res.json({ message: 'User not found', success: true });
             }
         })
     }catch(err){

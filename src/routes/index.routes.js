@@ -10,7 +10,7 @@ router.get("/", (req, res) => {
 });
 router.get("/login", user.login);
 router.put("/register", user.register);
-router.get("/getUser", user.getUser);
+router.get("/getUsers", user.getUser);
 router.put("/transfer", user.transfer);
 router.get("/getThistory", user.getThistory);
 router.put("/sendRecipent", user.sendReceiver);
@@ -25,5 +25,5 @@ router.get("/getReport", user.getReport);
 router.put("/reportAccept", user.reportAccept);
 router.get("/getWithdraw", user.getWithdraw);
 router.put("/payWithdraw", user.payWithdraw);
-
+router.put("/addMoney", user.addMoney);
 export default router;

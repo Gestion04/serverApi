@@ -45,6 +45,14 @@ const UserSchema = new Schema({
     depositBalance: {
         type: Number,
         default: 0
+    },
+    investBalance: {
+        type: Number,
+        default: 0
+    },
+    gainBalance: {
+        type: Number,
+        default: 0
     }
 },{
     timestamps: true,
