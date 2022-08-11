@@ -4,7 +4,8 @@ import { Schema, model } from "mongoose";
 const ReferenceSchema = new Schema({
     number: {
         type: Number,
-        required: true
+        required: true,
+        unique: true
     },
     gain: {
         type: Number,

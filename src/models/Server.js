@@ -13,6 +13,10 @@ const ServerSchema = new Schema({
     Balance: {
         type: Number,
         required: true
+    },
+    Invests:{
+        type: Number,
+        required: true
     }
 },{
     timestamps: true

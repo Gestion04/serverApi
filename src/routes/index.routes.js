@@ -26,4 +26,6 @@ router.put("/reportAccept", user.reportAccept);
 router.get("/getWithdraw", user.getWithdraw);
 router.put("/payWithdraw", user.payWithdraw);
 router.put("/addMoney", user.addMoney);
+router.put("/invest", user.investDef);
+router.get("/allDataAdmin", user.allDataAdmin);
 export default router;
