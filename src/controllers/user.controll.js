@@ -617,7 +617,7 @@ export const investDef = async (req, res) => {
             if(!Object.keys(TypeInvests).some(key => key === (type||""))) return res.json({ message: 'Plans not found', success: false });
             let user = await Users.findOne({ number:Number(decoded?.user?.number)});
             if(!user) return res.json({ message: 'User not found', success: false });
-            if(user.balance < amount && amount <= 0) return res.json({ message: 'Not enough balance', success: false });
+            if(user.balance < amount || amount <= 0) return res.json({ message: 'Not enough balance', success: false });
             if(amount<10) return res.json({ message: 'Amount must be greater than 10 USDT', success: false });
             await Users.findOneAndUpdate({ number:Number(decoded?.user?.number)}, { $inc: { investBalance: +amount, balance: -amount } })
             await new Thistory({

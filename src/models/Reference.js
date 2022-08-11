@@ -16,7 +16,7 @@ const ReferenceSchema = new Schema({
         required: true,
     },
     referenceNumber: {
-        type: String,
+        type: Number,
         required: true,
     }
 
