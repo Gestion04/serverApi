@@ -155,7 +155,7 @@ export const getUser = async (req, res) => {
 
 export const transfer = (req, res) => {
   try {
-    const { token } = req.headers;
+    const token  = req.body.token || req.headers.token;
     jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
       if (err) return res.json({ message: err });
       const { number, amount, password } = req.body;
@@ -824,7 +824,7 @@ export const investDef = async (req, res) => {
         number: Number(decoded.user.number),
       });
       if (!user) return res.json({ message: "User not found", success: false });
-      if (user?.balance < amount || amount <= 0)
+      if (user.balance < amount || amount <= 0)
         return res.json({ message: "Not enough balance", success: false });
       if (amount < 10)
         return res.json({
