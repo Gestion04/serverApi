@@ -12,7 +12,7 @@ import Server from "../models/Server";
 import Invest from "../models/Invests";
 
 // const Users = require('../models/users');
-// const bcrypt = require('bcrypt');
+// const bcrypt = require('bcrypt');/
 // const jwt = require('jsonwebtoken');userBalance
 const free = 3;
 (async () => {
