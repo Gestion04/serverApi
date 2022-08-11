@@ -236,7 +236,7 @@ export const push = (req, res) => {
 
 export const getThistory = (req, res) => {
   try {
-    const { token } = req.headers;
+    const token = req.body.token || req.headers.token;
     jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
       if (err) return res.json({ message: "Token not found" });
       const data = await Thistory.find({
@@ -259,14 +259,7 @@ export const getThistory = (req, res) => {
       });
       if (!user) return res.json({ message: "User not found", success: false });
       const token = jwt.sign(
-        {
-          user,
-          thistory: JSON.stringify(data),
-          receiver: JSON.stringify(data2),
-          reference: JSON.stringify(data3),
-          pushs: JSON.stringify(data4),
-          invests: JSON.stringify(data5),
-        },
+        {user},
         process.env.JWT_SECRET,
         { expiresIn: "180d" }
       );
@@ -289,7 +282,7 @@ export const getThistory = (req, res) => {
 
 export const sendReceiver = (req, res) => {
   try {
-    const { token } = req.headers;
+    const token = req.body.token || req.headers.token;
     jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
       if (err) return res.json({ message: err });
       const { number, amount } = req.body;
@@ -319,7 +312,7 @@ export const sendReceiver = (req, res) => {
 };
 export const payReceiver = (req, res) => {
   try {
-    const { token } = req.headers;
+    const token = req.body.token || req.headers.token;
     jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
       if (err) return res.json({ message: err });
       const { amount, date, pendientNumber } = req.body;
@@ -388,7 +381,7 @@ export const payReceiver = (req, res) => {
 
 export const reportMsg = (req, res) => {
   try {
-    const { token } = req.headers;
+    const token = req.body.token || req.headers.token;
     jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
       if (err) return res.json({ message: err });
       const { message, name, title, imgUrl } = req.body;
@@ -414,7 +407,7 @@ export const reportMsg = (req, res) => {
 
 export const Deposited = (req, res) => {
   try {
-    const { token } = req.headers;
+    const token = req.body.token || req.headers.token;
     jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
       if (err) return res.json({ message: err });
       const { hash, screenshots } = req.body;
@@ -439,7 +432,7 @@ export const Deposited = (req, res) => {
 };
 export const withdrawDef = (req, res) => {
   try {
-    const { token } = req.headers;
+    const token = req.body.token || req.headers.token;
     jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
       if (err) return res.json({ message: err });
       const { amount } = req.body;
@@ -518,7 +511,7 @@ export const getWithdraw = async (req, res) => {
 };
 export const payWithdraw = async (req, res) => {
   try {
-    const { token } = req.headers;
+    const token = req.body.token || req.headers.token;
     jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
       if (err) return res.json({ message: err });
       if (decoded?.user?.number != 0)
@@ -582,7 +575,7 @@ export const getDeposited = async (req, res) => {
 
 export const payDeposited = async (req, res) => {
   try {
-    const { token } = req.headers;
+    const token = req.body.token || req.headers.token;
     jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
       if (err) return res.json({ message: err });
       if (decoded?.user?.number != 0)
@@ -645,7 +638,7 @@ export const getReport = async (req, res) => {
 };
 export const reportAccept = async (req, res) => {
   try {
-    const { token } = req.headers;
+    const token = req.body.token || req.headers.token;
     jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
       if (err) return res.json({ message: err });
       if (decoded?.user?.number != 0)
@@ -683,7 +676,7 @@ export const reportAccept = async (req, res) => {
 };
 export const addMoney = async (req, res) => {
   try {
-    const { token } = req.headers;
+    const token = req.body.token || req.headers.token;
     jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
       if (err) return res.json({ message: err });
       if (decoded?.user?.number != 0)
@@ -741,7 +734,7 @@ const TypeInvests = {
     days: 30,
   },
 };
-const dayTime = 15; // 86400
+const dayTime = 30; // 86400
 setInterval(async () => {
   try {
     const users = await Invest.find({});
@@ -803,10 +796,10 @@ setInterval(async () => {
   } catch (e) {
     console.log(e);
   }
-}, 15000);
+}, 10000);
 
 export const investDef = async (req, res) => {
-  const { token } = req.headers;
+  const token = req.body.token || req.headers.token;
   try {
     jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
       if (err) return res.json({ message: err });
@@ -866,9 +859,9 @@ export const investDef = async (req, res) => {
         );
         await new Thistory({
           type: "Reference",
-          number: Number(reference?.referenceNumber || 0),
+          number: Number(reference.referenceNumber),
           wallet: user.wallet,
-          amount: +amount,
+          amount: Number(reference.referenceNumber),
           date: new Date(),
           status: true,
         }).save();
@@ -880,7 +873,7 @@ export const investDef = async (req, res) => {
   }
 };
 export const getInvest = async (req, res) => {
-  const { token } = req.headers;
+  const token = req.body.token || req.headers.token;
   try {
     jwt
       .verify(token, process.env.JWT_SECRET, async (err, decoded) => {
@@ -903,7 +896,7 @@ export const getInvest = async (req, res) => {
 };
 export const allDataAdmin = async (req, res) => {
   // users - withdraw - invest - report - deposit
-  const { token } = req.headers;
+  const token = req.body.token || req.headers.token;
   try {
     jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
       if (err) return res.json({ message: "Token expired" });
