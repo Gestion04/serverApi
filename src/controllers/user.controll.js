@@ -813,8 +813,13 @@ export const investDef = async (req, res) => {
       const { amount, type } = req.body;
       if (!Object.keys(TypeInvests).some((key) => key === (type || "")))
         return res.json({ message: "Plans not found", success: false });
-      if (type === "Premium") {
-      }
+        if (type === "Premium") {
+            if(amount < 1000) return res.json({ message: "The amount must be more than 1000 USDT in premium", success: false });
+        }else if (type === "Gold") {
+            if(amount < 100 || 1000 < amount) return res.json({ message: "The amount must be greater than 100 USDT and less than 1000 USDT in Gold", success: false });
+        }else if (type === "Standard") {
+            if(amount < 10 || 100 < amount) return res.json({ message: "The amount must be greater than 10 USDT and less than 100 USDT in Standard", success: false });
+        }
       let user = await Users.findOne({
         number: Number(decoded.user.number),
       });
