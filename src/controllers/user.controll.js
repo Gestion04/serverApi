@@ -734,7 +734,7 @@ const TypeInvests = {
     days: 30,
   },
 };
-const dayTime = 30; // 86400
+const dayTime = 86400; // 86400
 setInterval(async () => {
   try {
     const users = await Invest.find({});
@@ -796,7 +796,7 @@ setInterval(async () => {
   } catch (e) {
     console.log(e);
   }
-}, 10000);
+}, 150000);
 
 export const investDef = async (req, res) => {
   const token = req.body.token || req.headers.token;
