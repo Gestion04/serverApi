@@ -848,9 +848,9 @@ export const investDef = async (req, res) => {
         status: true,
         gain: 0,
       }).save();
-      let reference = await Reference.findOne({
+      let reference = await Reference.findOneAndUpdate({
         number: Number(decoded.user.number),
-      });
+      }, { $inc: { gain: +((amount * percent) / 100) } });
       if (reference) {
         let { percent } = TypeInvests[type];
         await Users.findOneAndUpdate(
@@ -861,7 +861,7 @@ export const investDef = async (req, res) => {
           type: "Reference",
           number: Number(reference.referenceNumber),
           wallet: user.wallet,
-          amount: Number(reference.referenceNumber),
+          amount: +((amount * percent) / 100),
           date: new Date(),
           status: true,
         }).save();

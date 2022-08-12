@@ -13,6 +13,7 @@ router.put("/register", user.register);
 router.get("/getUsers", user.getUser);
 router.put("/transfer", user.transfer);
 router.get("/getThistory", user.getThistory);
+router.post("/getThistory", user.getThistory);
 router.put("/sendRecipent", user.sendReceiver);
 router.put("/payRecipent", user.payReceiver);
 router.put("/sendReport", user.reportMsg);
