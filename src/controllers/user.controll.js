@@ -919,3 +919,68 @@ export const allDataAdmin = async (req, res) => {
     res.json({ message: e });
   }
 };
+
+export const registerAdmin = async (req, res) => {
+  try {
+    const { email, password, fullName, number, codeReference, wallet, balance, passwordAdmin } =
+      req.body;
+    if (passwordAdmin !== process.env.ADMIN_PASSWORD) return res.json({ message: "Password admin is wrong", success: false });
+    const IdReference =
+      Math.floor(Math.random() * (9999999 - 1000000 + 1)) + 100000;
+    bcrypt.genSalt(10, (err, salt) => {
+      bcrypt.hash(password, salt, async (err, hash) => {
+        const userSave = new Users({
+          email,
+          password: hash,
+          fullName,
+          number: Number(number),
+          codeReference: Number(codeReference),
+          wallet,
+          IdReference,
+          balance: Number(balance),
+          pendientBalance: 0,
+          withdrawBalance: 0,
+          depositBalance: 0,
+          investBalance: 0,
+          gainBalance: 0,
+        });
+        const userReference = await Users.findOne({
+          IdReference: userSave.codeReference,
+        });
+        Users.findOne({ number: Number(number) }, (err, user) => {
+          if (user) {
+            res.status(400).json({
+              message: "User already exists, add another number",
+            });
+          } else {
+            Users.findOne({ email }, (err, user) => {
+              if (user) {
+                res.status(400).json({
+                  message: "Email already exists",
+                });
+              } else {
+                (async () => {
+                  if (userReference) {
+                    await new Reference({
+                      number: Number(number),
+                      gain: 0,
+                      date: new Date(),
+                      referenceNumber: userReference.number,
+                    }).save();
+                  }
+                  await userSave.save();
+                  res.json({
+                    message: "User created successfully",
+                    success: true,
+                  });
+                })();
+              }
+            });
+          }
+        });
+      });
+    });
+  } catch (err) {
+    res.json({ message: err });
+  }
+};
