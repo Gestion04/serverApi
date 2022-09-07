@@ -722,15 +722,15 @@ export const addMoney = async (req, res) => {
 // Premium = 1000 - ∞ // 2.6% 30 days
 const TypeInvests = {
   Standard: {
-    percent: 1,
+    percent: 0.5,
     days: 2,
   },
   Gold: {
-    percent: 2.3,
+    percent: 13,
     days: 15,
   },
   Premium: {
-    percent: 2.6,
+    percent: 30,
     days: 30,
   },
 };
